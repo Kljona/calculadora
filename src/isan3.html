@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Costos de Importación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fff;
+            color: #000;
+            text-align: center;
+        }
+        .container {
+            width: 60%;
+            margin: auto;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #c00;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .input-group select, .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #c00;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #900;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: left;
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-container img {
+            max-width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <img src="LOGO CENCA.jpg" alt="Logo de la empresa">
+    </div>
+    
+    <div class="container">
+        <h1>Calculadora de Costos de Importación</h1>
+        <div class="input-group">
+            <label for="precio">Precio de las mercancías (USD):</label>
+            <input type="number" id="precio" step="0.01">
+        </div>
+
+        <div id="gastos-container">
+            <h3>Gastos adicionales</h3>
+        </div>
+        <button onclick="agregarGasto()">Agregar gasto</button>
+
+        <div class="input-group">
+            <label for="tasa-cambio">Tasa de cambio USD -> MXN:</label>
+            <input type="number" id="tasa-cambio" step="0.0001">
+        </div>
+        <div class="input-group">
+            <label for="tasa-igi">Tasa arancelaria IGI (%):</label>
+            <input type="number" id="tasa-igi" step="0.01">
+        </div>
+
+        <div class="input-group">
+            <label for="agregar-ieps">¿Deseas agregar IEPS?</label>
+            <select id="agregar-ieps">
+                <option value="no">No</option>
+                <option value="si">Sí</option>
+            </select>
+        </div>
+        
+        <div class="input-group" id="input-ieps" style="display: none;">
+            <label for="tasa-ieps">Tasa de IEPS (%):</label>
+            <input type="number" id="tasa-ieps" step="0.01">
+        </div>
+
+        <div class="input-group">
+            <label for="calcular-isan">¿Deseas calcular ISAN (Vehículos)?</label>
+            <select id="calcular-isan">
+                <option value="no">No</option>
+                <option value="si">Sí</option>
+            </select>
+        </div>
+
+        <div class="input-group" id="input-isan" style="display: none;">
+            <label for="precio-vehiculo">Precio del vehículo (MXN):</label>
+            <input type="number" id="precio-vehiculo" step="0.01">
+        </div>
+
+        <div class="input-group">
+            <label for="tipo-aduana">Tipo de Aduana:</label>
+            <select id="tipo-aduana">
+                <option value="aerea">Aérea (tarifa plana baja)</option>
+                <option value="maritima">Marítima (4.5% sobre valor en aduana, mínimo $6000 MXN)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="ultima-milla">Costo última milla (MXN):</label>
+            <input type="number" id="ultima-milla" step="0.01">
+        </div>
+        
+        <button onclick="calcular()">Calcular</button>
+        <div class="result" id="resultado"></div>
+    </div>
+
+    <script>
+        document.getElementById("agregar-ieps").addEventListener("change", function() {
+            document.getElementById("input-ieps").style.display = this.value === "si" ? "block" : "none";
+        });
+
+        document.getElementById("calcular-isan").addEventListener("change", function() {
+            document.getElementById("input-isan").style.display = this.value === "si" ? "block" : "none";
+        });
+
+        let gastos = [];
+        function agregarGasto() {
+            const contenedor = document.getElementById("gastos-container");
+            const div = document.createElement("div");
+            div.classList.add("input-group");
+
+            const label = document.createElement("label");
+            label.innerText = "Nombre del gasto:";
+            div.appendChild(label);
+
+            const inputNombre = document.createElement("input");
+            inputNombre.type = "text";
+            div.appendChild(inputNombre);
+
+            const labelMonto = document.createElement("label");
+            labelMonto.innerText = "Monto (USD):";
+            div.appendChild(labelMonto);
+
+            const inputMonto = document.createElement("input");
+            inputMonto.type = "number";
+            inputMonto.step = "0.01";
+            div.appendChild(inputMonto);
+
+            gastos.push({nombre: inputNombre, monto: inputMonto});
+            contenedor.appendChild(div);
+        }
+
+        function calcular() {
+    const precio = parseFloat(document.getElementById("precio").value) || 0;
+    const tasaCambio = parseFloat(document.getElementById("tasa-cambio").value) || 0;
+    const tasaIGI = (parseFloat(document.getElementById("tasa-igi").value) || 0) / 100;
+    const DTA = 0.008;
+    
+    let tasaIEPS = 0;
+    if (document.getElementById("agregar-ieps").value === "si") {
+        tasaIEPS = (parseFloat(document.getElementById("tasa-ieps").value) || 0) / 100;
+    }
+
+    let valorAduana = precio * tasaCambio;
+    let dtaMXN = valorAduana * DTA;
+    let igiMXN = valorAduana * tasaIGI;
+    let iepsMXN = (valorAduana + dtaMXN + igiMXN) * tasaIEPS;
+
+    let precioVehiculo = parseFloat(document.getElementById("precio-vehiculo").value) || 0;
+    let isanMXN = precioVehiculo * 0.03;
+
+    // Sumar los gastos adicionales
+    let totalGastosAdicionales = 0;
+    gastos.forEach(gasto => {
+        totalGastosAdicionales += parseFloat(gasto.monto.value) || 0;
+    });
+
+    // Calcular IVA (16% sobre la suma de los costos en aduana)
+    let ivaMXN = (valorAduana + dtaMXN + igiMXN + iepsMXN + isanMXN) * 0.16;
+
+    // Obtener la tarifa de la aduana
+    let honorarios = 0;
+    let tipoAduana = document.getElementById("tipo-aduana").value;
+    if (tipoAduana === "aerea") {
+        honorarios = 3000;
+    } else if (tipoAduana === "maritima") {
+        honorarios = Math.max(valorAduana * 0.045, 6000);
+    }
+
+    let ultimaMilla = parseFloat(document.getElementById("ultima-milla").value) || 0;
+
+    let total = valorAduana + dtaMXN + igiMXN + iepsMXN + isanMXN + ivaMXN + honorarios + ultimaMilla + (totalGastosAdicionales * tasaCambio);
+
+    document.getElementById("resultado").innerHTML = `
+        <h3>Desglose de Costos</h3>   
+        <p>Valor en aduana: $${valorAduana.toFixed(2)}</p>
+        <p>DTA: $${dtaMXN.toFixed(2)}</p>
+        <p>IGI: $${igiMXN.toFixed(2)}</p>
+        <p>IEPS: $${iepsMXN.toFixed(2)}</p>
+        <p>ISAN: $${isanMXN.toFixed(2)}</p>
+        <p>IVA: $${ivaMXN.toFixed(2)}</p>
+        <p>Honorarios: $${honorarios.toFixed(2)}</p>
+        <p>Última milla: $${ultimaMilla.toFixed(2)}</p>
+        <p>Gastos adicionales: $${(totalGastosAdicionales * tasaCambio).toFixed(2)}</p>
+        <h3>Total a pagar: $${total.toFixed(2)}</h3>
+    `;
+}
+
+        
+    </script>
+</body>
+</html>
