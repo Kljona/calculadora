@@ -81,7 +81,14 @@
         </div>
 
         <div id="gastos-container">
-            <h3>Gastos adicionales</h3>
+            <h3>Gastos adicionales
+                <li>
+                    🛻Flete
+                    🚩Maniobras
+                    🦺Seguro
+                    🎁Otros
+                </li>
+            </h3>
         </div>
         <button onclick="agregarGasto()">Agregar gasto</button>
 
@@ -169,67 +176,87 @@
             inputMonto.step = "0.01";
             div.appendChild(inputMonto);
 
-            gastos.push({nombre: inputNombre, monto: inputMonto});
+            const labelTipo = document.createElement("label");
+            labelTipo.innerText = "Tipo de gasto:";
+            div.appendChild(labelTipo);
+
+            const selectTipo = document.createElement("select");
+            const optionIncrementable = document.createElement("option");
+            optionIncrementable.value = "incrementable";
+            optionIncrementable.innerText = "Incrementable";
+            const optionDecrementable = document.createElement("option");
+            optionDecrementable.value = "decrementable";
+            optionDecrementable.innerText = "Decrementable";
+            selectTipo.appendChild(optionIncrementable);
+            selectTipo.appendChild(optionDecrementable);
+            div.appendChild(selectTipo);
+
+            gastos.push({nombre: inputNombre, monto: inputMonto, tipo: selectTipo});
             contenedor.appendChild(div);
         }
 
         function calcular() {
-    const precio = parseFloat(document.getElementById("precio").value) || 0;
-    const tasaCambio = parseFloat(document.getElementById("tasa-cambio").value) || 0;
-    const tasaIGI = (parseFloat(document.getElementById("tasa-igi").value) || 0) / 100;
-    const DTA = 0.008;
-    
-    let tasaIEPS = 0;
-    if (document.getElementById("agregar-ieps").value === "si") {
-        tasaIEPS = (parseFloat(document.getElementById("tasa-ieps").value) || 0) / 100;
-    }
+            const precio = parseFloat(document.getElementById("precio").value) || 0;
+            const tasaCambio = parseFloat(document.getElementById("tasa-cambio").value) || 0;
+            const tasaIGI = (parseFloat(document.getElementById("tasa-igi").value) || 0) / 100;
+            const DTA = 0.008;
+            
+            let tasaIEPS = 0;
+            if (document.getElementById("agregar-ieps").value === "si") {
+                tasaIEPS = (parseFloat(document.getElementById("tasa-ieps").value) || 0) / 100;
+            }
 
-    let valorAduana = precio * tasaCambio;
-    let dtaMXN = valorAduana * DTA;
-    let igiMXN = valorAduana * tasaIGI;
-    let iepsMXN = (valorAduana + dtaMXN + igiMXN) * tasaIEPS;
+            let valorAduana = precio * tasaCambio;
+            let dtaMXN = valorAduana * DTA;
+            dtaMXN = Math.max(dtaMXN, 445); // Aplicar cuota mínima de 445 MXN
 
-    let precioVehiculo = parseFloat(document.getElementById("precio-vehiculo").value) || 0;
-    let isanMXN = precioVehiculo * 0.03;
+            let igiMXN = valorAduana * tasaIGI;
+            let iepsMXN = (valorAduana + dtaMXN + igiMXN) * tasaIEPS;
 
-    // Sumar los gastos adicionales
-    let totalGastosAdicionales = 0;
-    gastos.forEach(gasto => {
-        totalGastosAdicionales += parseFloat(gasto.monto.value) || 0;
-    });
+            let precioVehiculo = parseFloat(document.getElementById("precio-vehiculo").value) || 0;
+            let isanMXN = precioVehiculo * 0.03;
 
-    // Calcular IVA (16% sobre la suma de los costos en aduana)
-    let ivaMXN = (valorAduana + dtaMXN + igiMXN + iepsMXN + isanMXN) * 0.16;
+            // Sumar o restar los gastos adicionales
+            let totalGastosAdicionales = 0;
+            gastos.forEach(gasto => {
+                const monto = parseFloat(gasto.monto.value) || 0;
+                if (gasto.tipo.value === "incrementable") {
+                    valorAduana += monto * tasaCambio;
+                } else if (gasto.tipo.value === "decrementable") {
+                    valorAduana -= monto * tasaCambio;
+                }
+            });
 
-    // Obtener la tarifa de la aduana
-    let honorarios = 0;
-    let tipoAduana = document.getElementById("tipo-aduana").value;
-    if (tipoAduana === "aerea") {
-        honorarios = 3000;
-    } else if (tipoAduana === "maritima") {
-        honorarios = Math.max(valorAduana * 0.045, 6000);
-    }
+            // Calcular IVA (16% sobre la suma de los costos en aduana)
+            let ivaMXN = (valorAduana + dtaMXN + igiMXN + iepsMXN + isanMXN) * 0.16;
 
-    let ultimaMilla = parseFloat(document.getElementById("ultima-milla").value) || 0;
+            // Obtener la tarifa de la aduana
+            let honorarios = 0;
+            let tipoAduana = document.getElementById("tipo-aduana").value;
+            if (tipoAduana === "aerea") {
+                honorarios = 3000;
+            } else if (tipoAduana === "maritima") {
+                honorarios = Math.max(valorAduana * 0.045, 6000);
+            }
 
-    let total = valorAduana + dtaMXN + igiMXN + iepsMXN + isanMXN + ivaMXN + honorarios + ultimaMilla + (totalGastosAdicionales * tasaCambio);
+            let ultimaMilla = parseFloat(document.getElementById("ultima-milla").value) || 0;
 
-    document.getElementById("resultado").innerHTML = `
-        <h3>Desglose de Costos</h3>   
-        <p>Valor en aduana: $${valorAduana.toFixed(2)}</p>
-        <p>DTA: $${dtaMXN.toFixed(2)}</p>
-        <p>IGI: $${igiMXN.toFixed(2)}</p>
-        <p>IEPS: $${iepsMXN.toFixed(2)}</p>
-        <p>ISAN: $${isanMXN.toFixed(2)}</p>
-        <p>IVA: $${ivaMXN.toFixed(2)}</p>
-        <p>Honorarios: $${honorarios.toFixed(2)}</p>
-        <p>Última milla: $${ultimaMilla.toFixed(2)}</p>
-        <p>Gastos adicionales: $${(totalGastosAdicionales * tasaCambio).toFixed(2)}</p>
-        <h3>Total a pagar: $${total.toFixed(2)}</h3>
-    `;
-}
+            let total = valorAduana + dtaMXN + igiMXN + iepsMXN + isanMXN + ivaMXN + honorarios + ultimaMilla;
 
-        
+            document.getElementById("resultado").innerHTML = `
+                <h3>Desglose de Costos</h3>   
+                <p>Valor en aduana: $${valorAduana.toFixed(2)}</p>
+                <p>DTA: $${dtaMXN.toFixed(2)}</p>
+                <p>IGI: $${igiMXN.toFixed(2)}</p>
+                <p>IEPS: $${iepsMXN.toFixed(2)}</p>
+                <p>ISAN: $${isanMXN.toFixed(2)}</p>
+                <p>IVA: $${ivaMXN.toFixed(2)}</p>
+                <p>Honorarios: $${honorarios.toFixed(2)}</p>
+                <p>Última milla: $${ultimaMilla.toFixed(2)}</p>
+                <p>Gastos adicionales: $${(totalGastosAdicionales * tasaCambio).toFixed(2)}</p>
+                <h3>Total a pagar: $${total.toFixed(2)}</h3>
+            `;
+        }
     </script>
 </body>
 </html>
