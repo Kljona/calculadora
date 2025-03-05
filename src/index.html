@@ -83,10 +83,10 @@
         <div id="gastos-container">
             <h3>Gastos adicionales
                 <li>
-                    (🛻Flete
+                    🛻Flete
                     🚩Maniobras
                     🦺Seguro
-                    🎁Otros)
+                    🎁Otros
                 </li>
             </h3>
         </div>
@@ -154,6 +154,8 @@
         });
 
         let gastos = [];
+        let tipoGastoGlobal = null;
+
         function agregarGasto() {
             const contenedor = document.getElementById("gastos-container");
             const div = document.createElement("div");
@@ -191,8 +193,32 @@
             selectTipo.appendChild(optionDecrementable);
             div.appendChild(selectTipo);
 
+            selectTipo.addEventListener("change", function() {
+                if (tipoGastoGlobal === null) {
+                    tipoGastoGlobal = selectTipo.value;
+                    deshabilitarOtrosTipos(selectTipo.value);
+                } else if (selectTipo.value !== tipoGastoGlobal) {
+                    alert("Todos los gastos deben ser del mismo tipo: " + tipoGastoGlobal);
+                    selectTipo.value = tipoGastoGlobal;
+                }
+            });
+
+            if (tipoGastoGlobal !== null) {
+                selectTipo.value = tipoGastoGlobal;
+                selectTipo.disabled = true;
+            }
+
             gastos.push({nombre: inputNombre, monto: inputMonto, tipo: selectTipo});
             contenedor.appendChild(div);
+        }
+
+        function deshabilitarOtrosTipos(tipo) {
+            const selects = document.querySelectorAll("#gastos-container select");
+            selects.forEach(select => {
+                if (select.value !== tipo) {
+                    select.disabled = true;
+                }
+            });
         }
 
         function calcular() {
